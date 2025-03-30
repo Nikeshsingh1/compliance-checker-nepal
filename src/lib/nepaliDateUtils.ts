@@ -8,23 +8,23 @@ export function toNepaliDate(date: Date): NepaliDate {
 
 export function formatNepaliDate(date: Date): string {
   const nepaliDate = toNepaliDate(date);
-  return `${nepaliDate.getBS().year} ${nepaliDate.getMonthName()} ${nepaliDate.getDate()}`;
+  return `${nepaliDate.getBS().year} ${nepaliMonths[nepaliDate.getBS().month]} ${nepaliDate.getBS().day}`;
 }
 
 export function formatNepaliDateShort(date: Date): string {
   const nepaliDate = toNepaliDate(date);
-  return `${nepaliDate.getBS().year}-${nepaliDate.getBS().month + 1}-${nepaliDate.getDate()}`;
+  return `${nepaliDate.getBS().year}-${nepaliDate.getBS().month + 1}-${nepaliDate.getBS().day}`;
 }
 
 export function formatNepaliDateWithEnglish(date: Date): string {
   const nepaliDate = toNepaliDate(date);
   const englishDate = formatDate(date, 'MMM d, yyyy');
-  return `${nepaliDate.getBS().year} ${nepaliDate.getMonthName()} ${nepaliDate.getDate()} (${englishDate})`;
+  return `${nepaliDate.getBS().year} ${nepaliMonths[nepaliDate.getBS().month]} ${nepaliDate.getBS().day} (${englishDate})`;
 }
 
 export function getNepaliMonthName(date: Date): string {
   const nepaliDate = toNepaliDate(date);
-  return nepaliDate.getMonthName();
+  return nepaliMonths[nepaliDate.getBS().month];
 }
 
 export function getNepaliYear(date: Date): number {
@@ -34,7 +34,7 @@ export function getNepaliYear(date: Date): number {
 
 export function getNepaliDay(date: Date): number {
   const nepaliDate = toNepaliDate(date);
-  return nepaliDate.getDate();
+  return nepaliDate.getBS().day;
 }
 
 export const nepaliMonths = [
@@ -51,4 +51,3 @@ export const nepaliMonths = [
   'Falgun', 
   'Chaitra'
 ];
-
