@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ComplianceItem, useComplianceContext } from '@/contexts/ComplianceContext';
-import { format, isPast, isToday, addDays } from 'date-fns';
+import { isPast, isToday, addDays } from 'date-fns';
 import { CheckIcon, ClockIcon, InfoIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatNepaliDateShort } from '@/lib/nepaliDateUtils';
 
 interface ComplianceCardProps {
   item: ComplianceItem;
@@ -62,7 +63,7 @@ const ComplianceCard: React.FC<ComplianceCardProps> = ({ item }) => {
         <div className="flex items-center mt-3 text-sm">
           <ClockIcon className="h-4 w-4 mr-1 text-gray-500" />
           <span className="text-gray-700">
-            Due: {format(item.dueDate, 'PPP')}
+            Due: {formatNepaliDateShort(item.dueDate)}
           </span>
         </div>
       </CardContent>

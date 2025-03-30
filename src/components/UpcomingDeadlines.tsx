@@ -2,10 +2,11 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useComplianceContext } from '@/contexts/ComplianceContext';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { CheckIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { formatNepaliDateShort } from '@/lib/nepaliDateUtils';
 
 const UpcomingDeadlines: React.FC = () => {
   const { upcomingDeadlines, markCompleted } = useComplianceContext();
@@ -23,7 +24,7 @@ const UpcomingDeadlines: React.FC = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="font-medium">{item.title}</h4>
-                    <p className="text-sm text-muted-foreground">{format(item.dueDate, 'PPP')}</p>
+                    <p className="text-sm text-muted-foreground">{formatNepaliDateShort(item.dueDate)}</p>
                     <p className="text-xs text-muted-foreground">
                       Due in {formatDistanceToNow(item.dueDate)}
                     </p>

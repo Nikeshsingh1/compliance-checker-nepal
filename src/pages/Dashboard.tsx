@@ -5,9 +5,13 @@ import { Navigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import DashboardSummary from '@/components/DashboardSummary';
 import UpcomingDeadlines from '@/components/UpcomingDeadlines';
+import { Card } from '@/components/ui/card';
+import { CalendarDays } from 'lucide-react';
+import { formatNepaliDateShort } from '@/lib/nepaliDateUtils';
 
 const Dashboard: React.FC = () => {
   const { isOnboardingComplete, businessInfo } = useBusinessContext();
+  const today = new Date();
   
   if (!isOnboardingComplete) {
     return <Navigate to="/" replace />;
@@ -22,6 +26,10 @@ const Dashboard: React.FC = () => {
           <p className="text-gray-600 mt-2">
             Here's an overview of your compliance status
           </p>
+          <div className="flex items-center text-sm text-gray-500 mt-2">
+            <CalendarDays className="h-4 w-4 mr-1" />
+            <span>Today's Date (Nepali): {formatNepaliDateShort(today)}</span>
+          </div>
         </div>
         
         <DashboardSummary />
