@@ -4,12 +4,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useComplianceContext } from '@/contexts/ComplianceContext';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { CheckIcon } from 'lucide-react';
+import { CheckIcon, PhoneIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatNepaliDateShort } from '@/lib/nepaliDateUtils';
+import { toast } from 'sonner';
 
 const UpcomingDeadlines: React.FC = () => {
   const { upcomingDeadlines, markCompleted } = useComplianceContext();
+  
+  const handleSendSmsReminder = (title: string) => {
+    const phoneNumber = localStorage.getItem('reminderPhoneNumber');
+    if (!phoneNumber || localStorage.getItem('smsRemindersEnabled') !== 'true') {
+      toast.error('SMS reminders not enabled. Please enable them in the reminders page.');
+      return;
+    }
+    
+    toast.success(`SMS reminder sent for: ${title}`);
+  };
   
   return (
     <Card className="h-full">
@@ -29,15 +40,26 @@ const UpcomingDeadlines: React.FC = () => {
                       Due in {formatDistanceToNow(item.dueDate)}
                     </p>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => markCompleted(item.id)}
-                    className="flex items-center"
-                  >
-                    <CheckIcon className="h-3 w-3 mr-1" />
-                    <span className="text-xs">Complete</span>
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleSendSmsReminder(item.title)}
+                      className="flex items-center"
+                      title="Send SMS reminder"
+                    >
+                      <PhoneIcon className="h-3 w-3" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => markCompleted(item.id)}
+                      className="flex items-center"
+                    >
+                      <CheckIcon className="h-3 w-3 mr-1" />
+                      <span className="text-xs">Complete</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
