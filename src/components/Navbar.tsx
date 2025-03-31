@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useBusinessContext } from '@/contexts/BusinessContext';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon, CheckIcon, FileTextIcon, ClockIcon } from 'lucide-react';
+import { CalendarIcon, CheckIcon, FileTextIcon, ClockIcon, LinkIcon } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const { businessInfo, isOnboardingComplete } = useBusinessContext();
@@ -47,6 +47,13 @@ const Navbar: React.FC = () => {
               <Link to="/reminders" className="flex items-center">
                 <ClockIcon className="h-4 w-4 mr-2" />
                 <span>Reminders</span>
+              </Link>
+            </Button>
+            
+            <Button variant="ghost" asChild>
+              <Link to="/services" className="flex items-center">
+                <LinkIcon className="h-4 w-4 mr-2" />
+                <span>Services</span>
               </Link>
             </Button>
           </div>

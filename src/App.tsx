@@ -13,6 +13,7 @@ import Checklist from "./pages/Checklist";
 import Calendar from "./pages/Calendar";
 import Reminders from "./pages/Reminders";
 import Profile from "./pages/Profile";
+import Services from "./pages/Services";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/checklist" element={<Checklist />} />
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/reminders" element={<Reminders />} />
+              <Route path="/services" element={<Services />} />
               <Route path="/profile" element={<Profile />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
