@@ -4,13 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useComplianceContext } from '@/contexts/ComplianceContext';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { CheckIcon, PhoneIcon } from 'lucide-react';
+import { CheckIcon, PhoneIcon, BanknoteIcon, CarIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatNepaliDateShort } from '@/lib/nepaliDateUtils';
 import { toast } from 'sonner';
 
 const UpcomingDeadlines: React.FC = () => {
-  const { upcomingDeadlines, markCompleted } = useComplianceContext();
+  const { 
+    upcomingDeadlines, 
+    markCompleted,
+    loanRepayments,
+    vehicleRenewals,
+    markLoanRepaymentComplete,
+    markVehicleRenewalComplete
+  } = useComplianceContext();
   
   const handleSendSmsReminder = (title: string) => {
     const phoneNumber = localStorage.getItem('reminderPhoneNumber');
@@ -20,6 +27,31 @@ const UpcomingDeadlines: React.FC = () => {
     }
     
     toast.success(`SMS reminder sent for: ${title}`);
+  };
+  
+  // Check if item ID is from loan or vehicle
+  const isLoanItem = (id: string) => id.startsWith('loan-');
+  const isVehicleItem = (id: string) => id.startsWith('vehicle-');
+  
+  const handleCompleteItem = (id: string) => {
+    if (isLoanItem(id)) {
+      const loanId = id.replace('loan-', '');
+      markLoanRepaymentComplete(loanId);
+      toast.success('Loan payment marked as completed');
+    } else if (isVehicleItem(id)) {
+      const vehicleId = id.replace('vehicle-', '');
+      markVehicleRenewalComplete(vehicleId);
+      toast.success('Vehicle bluebook renewal marked as completed');
+    } else {
+      markCompleted(id);
+    }
+  };
+  
+  // Get icon based on item type
+  const getItemIcon = (id: string) => {
+    if (isLoanItem(id)) return <BanknoteIcon className="h-3 w-3 mr-1" />;
+    if (isVehicleItem(id)) return <CarIcon className="h-3 w-3 mr-1" />;
+    return <CheckIcon className="h-3 w-3 mr-1" />;
   };
   
   return (
@@ -53,10 +85,10 @@ const UpcomingDeadlines: React.FC = () => {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => markCompleted(item.id)}
+                      onClick={() => handleCompleteItem(item.id)}
                       className="flex items-center"
                     >
-                      <CheckIcon className="h-3 w-3 mr-1" />
+                      {getItemIcon(item.id)}
                       <span className="text-xs">Complete</span>
                     </Button>
                   </div>
@@ -73,7 +105,7 @@ const UpcomingDeadlines: React.FC = () => {
         
         <div className="mt-6">
           <Button asChild variant="outline" className="w-full">
-            <Link to="/checklist">View All Tasks</Link>
+            <Link to="/reminders">Manage All Reminders</Link>
           </Button>
         </div>
       </CardContent>

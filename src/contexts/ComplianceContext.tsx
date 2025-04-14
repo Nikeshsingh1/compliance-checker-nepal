@@ -1,7 +1,6 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useBusinessContext } from './BusinessContext';
-import { addMonths, addDays, format, isAfter, isBefore, endOfDay } from 'date-fns';
+import { addMonths, addDays, format, isAfter, isBefore, endOfDay, addYears } from 'date-fns';
 
 export interface ComplianceItem {
   id: string;
@@ -14,18 +13,57 @@ export interface ComplianceItem {
   requiresVAT?: boolean;
 }
 
+export interface LoanRepayment {
+  id: string;
+  loanName: string;
+  startDate: Date;
+  amount: number;
+  frequency: 'monthly' | 'quarterly' | 'half-yearly' | 'annually';
+  nextDueDate: Date;
+  status: 'pending' | 'completed';
+}
+
+export interface VehicleRenewal {
+  id: string;
+  vehicleName: string;
+  registrationNumber: string;
+  lastRenewalDate: Date;
+  nextRenewalDate: Date;
+  status: 'pending' | 'completed';
+}
+
 interface ComplianceContextType {
   complianceItems: ComplianceItem[];
+  loanRepayments: LoanRepayment[];
+  vehicleRenewals: VehicleRenewal[];
   markCompleted: (id: string) => void;
   markPending: (id: string) => void;
   upcomingDeadlines: ComplianceItem[];
+  addLoanRepayment: (loan: Omit<LoanRepayment, 'id'>) => void;
+  updateLoanRepayment: (loan: LoanRepayment) => void;
+  removeLoanRepayment: (id: string) => void;
+  markLoanRepaymentComplete: (id: string) => void;
+  addVehicleRenewal: (vehicle: Omit<VehicleRenewal, 'id'>) => void;
+  updateVehicleRenewal: (vehicle: VehicleRenewal) => void;
+  removeVehicleRenewal: (id: string) => void;
+  markVehicleRenewalComplete: (id: string) => void;
 }
 
 const ComplianceContext = createContext<ComplianceContextType>({
   complianceItems: [],
+  loanRepayments: [],
+  vehicleRenewals: [],
   markCompleted: () => {},
   markPending: () => {},
   upcomingDeadlines: [],
+  addLoanRepayment: () => {},
+  updateLoanRepayment: () => {},
+  removeLoanRepayment: () => {},
+  markLoanRepaymentComplete: () => {},
+  addVehicleRenewal: () => {},
+  updateVehicleRenewal: () => {},
+  removeVehicleRenewal: () => {},
+  markVehicleRenewalComplete: () => {},
 });
 
 export const useComplianceContext = () => useContext(ComplianceContext);
@@ -34,6 +72,34 @@ export const ComplianceProvider: React.FC<{ children: ReactNode }> = ({ children
   const { businessInfo } = useBusinessContext();
   const [complianceItems, setComplianceItems] = useState<ComplianceItem[]>([]);
   const [upcomingDeadlines, setUpcomingDeadlines] = useState<ComplianceItem[]>([]);
+  const [loanRepayments, setLoanRepayments] = useState<LoanRepayment[]>([]);
+  const [vehicleRenewals, setVehicleRenewals] = useState<VehicleRenewal[]>([]);
+
+  // Load saved data from localStorage
+  useEffect(() => {
+    const savedLoans = localStorage.getItem('loanRepayments');
+    if (savedLoans) {
+      const parsedLoans = JSON.parse(savedLoans);
+      // Convert string dates back to Date objects
+      const loansWithDates = parsedLoans.map((loan: any) => ({
+        ...loan,
+        startDate: new Date(loan.startDate),
+        nextDueDate: new Date(loan.nextDueDate)
+      }));
+      setLoanRepayments(loansWithDates);
+    }
+
+    const savedVehicles = localStorage.getItem('vehicleRenewals');
+    if (savedVehicles) {
+      const parsedVehicles = JSON.parse(savedVehicles);
+      const vehiclesWithDates = parsedVehicles.map((vehicle: any) => ({
+        ...vehicle,
+        lastRenewalDate: new Date(vehicle.lastRenewalDate),
+        nextRenewalDate: new Date(vehicle.nextRenewalDate)
+      }));
+      setVehicleRenewals(vehiclesWithDates);
+    }
+  }, []);
 
   // Generate compliance items based on business info
   useEffect(() => {
@@ -187,8 +253,42 @@ export const ComplianceProvider: React.FC<{ children: ReactNode }> = ({ children
 
     setComplianceItems(items);
 
+    // Add loan repayments and vehicle renewals to upcoming deadlines if they're due soon
+    const today = new Date();
+    const combinedItems: ComplianceItem[] = [...complianceItems];
+    
+    // Add loan repayments to the list
+    loanRepayments.forEach(loan => {
+      if (loan.status === 'pending' && isBefore(today, loan.nextDueDate)) {
+        combinedItems.push({
+          id: `loan-${loan.id}`,
+          category: 'Loan Repayment',
+          title: `${loan.loanName} Payment Due`,
+          description: `Loan repayment of NPR ${loan.amount.toLocaleString()} is due.`,
+          dueDate: loan.nextDueDate,
+          status: 'pending',
+          priority: isBefore(loan.nextDueDate, addDays(today, 7)) ? 'urgent' : 'normal'
+        });
+      }
+    });
+
+    // Add vehicle renewals to the list
+    vehicleRenewals.forEach(vehicle => {
+      if (vehicle.status === 'pending' && isBefore(today, vehicle.nextRenewalDate)) {
+        combinedItems.push({
+          id: `vehicle-${vehicle.id}`,
+          category: 'Vehicle Registration',
+          title: `${vehicle.vehicleName} Bluebook Renewal`,
+          description: `Vehicle bluebook renewal for ${vehicle.registrationNumber} is due.`,
+          dueDate: vehicle.nextRenewalDate,
+          status: 'pending',
+          priority: isBefore(vehicle.nextRenewalDate, addDays(today, 14)) ? 'urgent' : 'normal'
+        });
+      }
+    });
+
     // Update upcoming deadlines
-    const upcoming = items
+    const upcoming = combinedItems
       .filter(item => item.status !== 'completed' && isBefore(today, item.dueDate))
       .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
       .slice(0, 5);
@@ -239,12 +339,127 @@ export const ComplianceProvider: React.FC<{ children: ReactNode }> = ({ children
     setUpcomingDeadlines(upcoming);
   };
 
+  // Loan repayment functions
+  const addLoanRepayment = (loan: Omit<LoanRepayment, 'id'>) => {
+    const newLoan: LoanRepayment = {
+      ...loan,
+      id: `loan-${Date.now()}`
+    };
+    
+    const updatedLoans = [...loanRepayments, newLoan];
+    setLoanRepayments(updatedLoans);
+    localStorage.setItem('loanRepayments', JSON.stringify(updatedLoans));
+  };
+
+  const updateLoanRepayment = (loan: LoanRepayment) => {
+    const updatedLoans = loanRepayments.map(item => 
+      item.id === loan.id ? loan : item
+    );
+    setLoanRepayments(updatedLoans);
+    localStorage.setItem('loanRepayments', JSON.stringify(updatedLoans));
+  };
+
+  const removeLoanRepayment = (id: string) => {
+    const updatedLoans = loanRepayments.filter(loan => loan.id !== id);
+    setLoanRepayments(updatedLoans);
+    localStorage.setItem('loanRepayments', JSON.stringify(updatedLoans));
+  };
+
+  const markLoanRepaymentComplete = (id: string) => {
+    const loan = loanRepayments.find(loan => loan.id === id);
+    if (!loan) return;
+
+    // Calculate next due date based on frequency
+    let nextDueDate = new Date(loan.nextDueDate);
+    switch (loan.frequency) {
+      case 'monthly':
+        nextDueDate = addMonths(nextDueDate, 1);
+        break;
+      case 'quarterly':
+        nextDueDate = addMonths(nextDueDate, 3);
+        break;
+      case 'half-yearly':
+        nextDueDate = addMonths(nextDueDate, 6);
+        break;
+      case 'annually':
+        nextDueDate = addYears(nextDueDate, 1);
+        break;
+    }
+
+    const updatedLoan = { ...loan, nextDueDate };
+    const updatedLoans = loanRepayments.map(item => 
+      item.id === id ? updatedLoan : item
+    );
+    
+    setLoanRepayments(updatedLoans);
+    localStorage.setItem('loanRepayments', JSON.stringify(updatedLoans));
+  };
+
+  // Vehicle renewal functions
+  const addVehicleRenewal = (vehicle: Omit<VehicleRenewal, 'id'>) => {
+    const newVehicle: VehicleRenewal = {
+      ...vehicle,
+      id: `vehicle-${Date.now()}`
+    };
+    
+    const updatedVehicles = [...vehicleRenewals, newVehicle];
+    setVehicleRenewals(updatedVehicles);
+    localStorage.setItem('vehicleRenewals', JSON.stringify(updatedVehicles));
+  };
+
+  const updateVehicleRenewal = (vehicle: VehicleRenewal) => {
+    const updatedVehicles = vehicleRenewals.map(item => 
+      item.id === vehicle.id ? vehicle : item
+    );
+    setVehicleRenewals(updatedVehicles);
+    localStorage.setItem('vehicleRenewals', JSON.stringify(updatedVehicles));
+  };
+
+  const removeVehicleRenewal = (id: string) => {
+    const updatedVehicles = vehicleRenewals.filter(vehicle => vehicle.id !== id);
+    setVehicleRenewals(updatedVehicles);
+    localStorage.setItem('vehicleRenewals', JSON.stringify(updatedVehicles));
+  };
+
+  const markVehicleRenewalComplete = (id: string) => {
+    const vehicle = vehicleRenewals.find(v => v.id === id);
+    if (!vehicle) return;
+
+    // Set last renewal date to current date and calculate next renewal date (1 year later)
+    const lastRenewalDate = new Date();
+    const nextRenewalDate = addYears(lastRenewalDate, 1);
+
+    const updatedVehicle = { 
+      ...vehicle, 
+      lastRenewalDate,
+      nextRenewalDate,
+      status: 'pending' as const
+    };
+    
+    const updatedVehicles = vehicleRenewals.map(item => 
+      item.id === id ? updatedVehicle : item
+    );
+    
+    setVehicleRenewals(updatedVehicles);
+    localStorage.setItem('vehicleRenewals', JSON.stringify(updatedVehicles));
+  };
+
   return (
     <ComplianceContext.Provider value={{ 
       complianceItems, 
+      loanRepayments,
+      vehicleRenewals,
       markCompleted,
       markPending,
-      upcomingDeadlines
+      upcomingDeadlines,
+      addLoanRepayment,
+      updateLoanRepayment,
+      removeLoanRepayment,
+      markLoanRepaymentComplete,
+      addVehicleRenewal,
+      updateVehicleRenewal,
+      removeVehicleRenewal,
+      markVehicleRenewalComplete
     }}>
       {children}
     </ComplianceContext.Provider>
