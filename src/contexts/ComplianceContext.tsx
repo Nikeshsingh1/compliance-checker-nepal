@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useBusinessContext } from './BusinessContext';
 import { addMonths, addDays, format, isAfter, isBefore, endOfDay, addYears } from 'date-fns';
@@ -254,7 +255,7 @@ export const ComplianceProvider: React.FC<{ children: ReactNode }> = ({ children
     setComplianceItems(items);
 
     // Add loan repayments and vehicle renewals to upcoming deadlines if they're due soon
-    const today = new Date();
+    // Using the same 'today' instance to avoid redeclaration
     const combinedItems: ComplianceItem[] = [...complianceItems];
     
     // Add loan repayments to the list
@@ -295,7 +296,7 @@ export const ComplianceProvider: React.FC<{ children: ReactNode }> = ({ children
     
     setUpcomingDeadlines(upcoming);
     
-  }, [businessInfo]);
+  }, [businessInfo, complianceItems, loanRepayments, vehicleRenewals]);
 
   const markCompleted = (id: string) => {
     const updatedItems = complianceItems.map(item => 
