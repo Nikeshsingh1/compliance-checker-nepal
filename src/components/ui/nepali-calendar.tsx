@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker } from "react-day-picker";
+import { DayPicker, DayPickerRootProps } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -25,7 +25,7 @@ function NepaliCalendar({
   const nepaliToday = getNepaliDateObject(today);
   
   // Custom formatter for the month caption
-  const formatCaption = (date: Date, options?: { locale?: Locale }) => {
+  const formatCaption = (date: Date) => {
     const nepaliDate = toNepaliDate(date);
     const year = nepaliDate.getBS().year;
     const month = nepaliMonths[nepaliDate.getBS().month];
@@ -112,29 +112,45 @@ function NepaliCalendar({
         ...classNames,
       }}
       components={{
-        IconLeft: ({ ...props }) => (
-          <ChevronLeft 
-            className="h-4 w-4" 
-            onClick={(e) => {
-              e.stopPropagation();
-              if (props.onClick) {
-                handlePrevMonth(props.month, props.onClick);
-              }
-            }}
-          />
-        ),
-        IconRight: ({ ...props }) => (
-          <ChevronRight 
-            className="h-4 w-4" 
-            onClick={(e) => {
-              e.stopPropagation();
-              if (props.onClick) {
-                handleNextMonth(props.month, props.onClick);
-              }
-            }}
-          />
-        ),
-        Caption: ({ displayMonth, ...captionProps }) => (
+        IconLeft: (props) => {
+          // Type cast props to access navigate function properties
+          const iconProps = props as unknown as { 
+            month: Date;
+            onClick: (e: React.MouseEvent<HTMLButtonElement>) => void 
+          };
+          
+          return (
+            <ChevronLeft 
+              className="h-4 w-4" 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (iconProps.onClick && iconProps.month) {
+                  handlePrevMonth(iconProps.month, iconProps.onClick);
+                }
+              }}
+            />
+          );
+        },
+        IconRight: (props) => {
+          // Type cast props to access navigate function properties
+          const iconProps = props as unknown as { 
+            month: Date;
+            onClick: (e: React.MouseEvent<HTMLButtonElement>) => void 
+          };
+          
+          return (
+            <ChevronRight 
+              className="h-4 w-4" 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (iconProps.onClick && iconProps.month) {
+                  handleNextMonth(iconProps.month, iconProps.onClick);
+                }
+              }}
+            />
+          );
+        },
+        Caption: ({ displayMonth }) => (
           <div className="flex justify-center items-center h-9 relative">
             <span className="text-sm font-medium">
               {formatCaption(displayMonth)}

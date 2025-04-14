@@ -49,7 +49,7 @@ export function getNepaliDateObject(date: Date): { year: number; month: number; 
 export function getEnglishDateFromNepaliBS(year: number, month: number, day: number): Date {
   try {
     const nepaliDate = new NepaliDate(year, month, day);
-    return nepaliDate.toJSDate();
+    return nepaliDate.toJsDate(); // Fixed: changed toJSDate to toJsDate
   } catch (error) {
     console.error("Invalid Nepali date", error);
     return new Date();
@@ -69,7 +69,7 @@ export function getFirstDayOfNepaliMonth(year: number, month: number): number {
   // Get the weekday (0-6) of the first day of the given Nepali month
   // This is an approximation, as the actual calculation is complex
   const nepaliDate = new NepaliDate(year, month, 1);
-  const jsDate = nepaliDate.toJSDate();
+  const jsDate = nepaliDate.toJsDate(); // Fixed: changed toJSDate to toJsDate
   return jsDate.getDay(); // 0 is Sunday, 1 is Monday, etc.
 }
 
@@ -97,4 +97,3 @@ export const nepaliWeekdays = [
   'शुक्रबार', // Friday
   'शनिबार'  // Saturday
 ];
-
