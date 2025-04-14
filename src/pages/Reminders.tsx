@@ -3,11 +3,22 @@ import React, { useState } from 'react';
 import { useBusinessContext } from '@/contexts/BusinessContext';
 import { Navigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
-import { useComplianceContext, LoanRepayment, VehicleRenewal } from '@/contexts/ComplianceContext';
+import { useComplianceContext, LoanRepayment, VehicleRenewal, UtilityPayment } from '@/contexts/ComplianceContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { format, addDays, isBefore, parseISO } from 'date-fns';
-import { CheckIcon, ClockIcon, BellIcon, MailIcon, PhoneIcon, PlusIcon, Trash2Icon, CarIcon, BanknoteIcon } from 'lucide-react';
+import { 
+  CheckIcon, 
+  ClockIcon, 
+  BellIcon, 
+  MailIcon, 
+  PhoneIcon, 
+  PlusIcon, 
+  Trash2Icon, 
+  CarIcon, 
+  BanknoteIcon,
+  LightbulbIcon
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { 
   Dialog,
@@ -51,12 +62,21 @@ const vehicleSchema = z.object({
   nextRenewalDate: z.date()
 });
 
+const utilitySchema = z.object({
+  utilityName: z.string().min(1, "Utility name is required"),
+  providerName: z.string().min(1, "Provider name is required"),
+  amount: z.coerce.number().min(1, "Amount must be greater than 0"),
+  frequency: z.enum(['monthly', 'quarterly', 'half-yearly', 'annually']),
+  nextDueDate: z.date()
+});
+
 const Reminders: React.FC = () => {
   const { isOnboardingComplete, businessInfo } = useBusinessContext();
   const { 
     complianceItems, 
     loanRepayments, 
     vehicleRenewals,
+    utilityPayments,
     addLoanRepayment,
     updateLoanRepayment,
     removeLoanRepayment,
@@ -64,12 +84,17 @@ const Reminders: React.FC = () => {
     addVehicleRenewal,
     updateVehicleRenewal,
     removeVehicleRenewal,
-    markVehicleRenewalComplete
+    markVehicleRenewalComplete,
+    addUtilityPayment,
+    updateUtilityPayment,
+    removeUtilityPayment,
+    markUtilityPaymentComplete
   } = useComplianceContext();
   
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
   const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
+  const [utilityDialogOpen, setUtilityDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('compliance');
 
   const [isSmsEnabled, setIsSmsEnabled] = useState(
@@ -104,6 +129,17 @@ const Reminders: React.FC = () => {
       registrationNumber: '',
       lastRenewalDate: new Date(),
       nextRenewalDate: new Date()
+    }
+  });
+  
+  const utilityForm = useForm<z.infer<typeof utilitySchema>>({
+    resolver: zodResolver(utilitySchema),
+    defaultValues: {
+      utilityName: '',
+      providerName: '',
+      amount: 0,
+      frequency: 'monthly',
+      nextDueDate: new Date()
     }
   });
   
@@ -195,6 +231,30 @@ const Reminders: React.FC = () => {
     toast.success('Vehicle bluebook renewal completed and next year\'s reminder set');
   };
   
+  const handleAddUtility = (values: z.infer<typeof utilitySchema>) => {
+    addUtilityPayment({
+      utilityName: values.utilityName,
+      providerName: values.providerName,
+      amount: values.amount,
+      frequency: values.frequency,
+      nextDueDate: values.nextDueDate,
+      status: 'pending'
+    });
+    setUtilityDialogOpen(false);
+    utilityForm.reset();
+    toast.success('Utility payment schedule added');
+  };
+  
+  const handleRemoveUtility = (id: string) => {
+    removeUtilityPayment(id);
+    toast.success('Utility payment reminder removed');
+  };
+  
+  const handleUtilityPaid = (id: string) => {
+    markUtilityPaymentComplete(id);
+    toast.success('Utility payment marked as complete and next due date updated');
+  };
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -209,6 +269,7 @@ const Reminders: React.FC = () => {
             <TabsTrigger value="compliance">Compliance</TabsTrigger>
             <TabsTrigger value="loans">Loan Repayments</TabsTrigger>
             <TabsTrigger value="vehicles">Vehicle Renewals</TabsTrigger>
+            <TabsTrigger value="utilities">Utility Payments</TabsTrigger>
             <TabsTrigger value="notifications">Notification Settings</TabsTrigger>
           </TabsList>
           
@@ -375,6 +436,77 @@ const Reminders: React.FC = () => {
                   <Button onClick={() => setVehicleDialogOpen(true)}>
                     <PlusIcon className="h-4 w-4 mr-1" />
                     Add Vehicle
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="utilities" className="space-y-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Utility Payments</h2>
+              <Button onClick={() => setUtilityDialogOpen(true)} className="flex items-center">
+                <PlusIcon className="h-4 w-4 mr-1" />
+                <span>Add Utility</span>
+              </Button>
+            </div>
+            
+            {utilityPayments.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {utilityPayments.map(utility => (
+                  <Card key={utility.id}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between">
+                        <CardTitle className="text-lg">{utility.utilityName}</CardTitle>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleRemoveUtility(utility.id)} 
+                          className="h-8 w-8 text-gray-500 hover:text-red-500"
+                        >
+                          <Trash2Icon className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Provider:</span>
+                          <span className="font-medium">{utility.providerName}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Amount:</span>
+                          <span>NPR {utility.amount.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Frequency:</span>
+                          <span className="capitalize">{utility.frequency}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Next Payment:</span>
+                          <span>{formatNepaliDateShort(utility.nextDueDate)}</span>
+                        </div>
+                        
+                        <Button 
+                          className="w-full mt-4" 
+                          onClick={() => handleUtilityPaid(utility.id)}
+                        >
+                          <LightbulbIcon className="h-4 w-4 mr-1" />
+                          Mark as Paid
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="text-center py-12">
+                  <LightbulbIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <p className="text-gray-500 mb-4">No utility payment schedules added yet.</p>
+                  <Button onClick={() => setUtilityDialogOpen(true)}>
+                    <PlusIcon className="h-4 w-4 mr-1" />
+                    Add Utility Payment
                   </Button>
                 </CardContent>
               </Card>
@@ -801,6 +933,140 @@ const Reminders: React.FC = () => {
                 </Button>
                 <Button type="submit">
                   Add Vehicle
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Utility Dialog */}
+      <Dialog open={utilityDialogOpen} onOpenChange={setUtilityDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Utility Payment</DialogTitle>
+            <DialogDescription>
+              Add your utility bills to receive payment reminders.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...utilityForm}>
+            <form onSubmit={utilityForm.handleSubmit(handleAddUtility)} className="space-y-4">
+              <FormField
+                control={utilityForm.control}
+                name="utilityName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Utility Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Electricity Bill" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={utilityForm.control}
+                name="providerName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Provider Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nepal Electricity Authority" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={utilityForm.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Payment Amount (NPR)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="5000" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={utilityForm.control}
+                name="frequency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Payment Frequency</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select frequency" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="quarterly">Quarterly</SelectItem>
+                        <SelectItem value="half-yearly">Half-Yearly</SelectItem>
+                        <SelectItem value="annually">Annually</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={utilityForm.control}
+                name="nextDueDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Next Due Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              formatNepaliDateShort(field.value)
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <ClockIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setUtilityDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Add Utility Payment
                 </Button>
               </DialogFooter>
             </form>

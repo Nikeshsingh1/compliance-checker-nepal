@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useComplianceContext } from '@/contexts/ComplianceContext';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { CheckIcon, PhoneIcon, BanknoteIcon, CarIcon } from 'lucide-react';
+import { CheckIcon, PhoneIcon, BanknoteIcon, CarIcon, LightbulbIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatNepaliDateShort } from '@/lib/nepaliDateUtils';
 import { toast } from 'sonner';
@@ -15,8 +15,10 @@ const UpcomingDeadlines: React.FC = () => {
     markCompleted,
     loanRepayments,
     vehicleRenewals,
+    utilityPayments,
     markLoanRepaymentComplete,
-    markVehicleRenewalComplete
+    markVehicleRenewalComplete,
+    markUtilityPaymentComplete
   } = useComplianceContext();
   
   const handleSendSmsReminder = (title: string) => {
@@ -29,9 +31,10 @@ const UpcomingDeadlines: React.FC = () => {
     toast.success(`SMS reminder sent for: ${title}`);
   };
   
-  // Check if item ID is from loan or vehicle
+  // Check if item ID is from loan, vehicle, or utility
   const isLoanItem = (id: string) => id.startsWith('loan-');
   const isVehicleItem = (id: string) => id.startsWith('vehicle-');
+  const isUtilityItem = (id: string) => id.startsWith('utility-');
   
   const handleCompleteItem = (id: string) => {
     if (isLoanItem(id)) {
@@ -42,6 +45,10 @@ const UpcomingDeadlines: React.FC = () => {
       const vehicleId = id.replace('vehicle-', '');
       markVehicleRenewalComplete(vehicleId);
       toast.success('Vehicle bluebook renewal marked as completed');
+    } else if (isUtilityItem(id)) {
+      const utilityId = id.replace('utility-', '');
+      markUtilityPaymentComplete(utilityId);
+      toast.success('Utility payment marked as completed');
     } else {
       markCompleted(id);
     }
@@ -51,6 +58,7 @@ const UpcomingDeadlines: React.FC = () => {
   const getItemIcon = (id: string) => {
     if (isLoanItem(id)) return <BanknoteIcon className="h-3 w-3 mr-1" />;
     if (isVehicleItem(id)) return <CarIcon className="h-3 w-3 mr-1" />;
+    if (isUtilityItem(id)) return <LightbulbIcon className="h-3 w-3 mr-1" />;
     return <CheckIcon className="h-3 w-3 mr-1" />;
   };
   

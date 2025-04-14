@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useBusinessContext } from './BusinessContext';
 import { addMonths, addDays, format, isAfter, isBefore, endOfDay, addYears } from 'date-fns';
@@ -33,10 +32,21 @@ export interface VehicleRenewal {
   status: 'pending' | 'completed';
 }
 
+export interface UtilityPayment {
+  id: string;
+  utilityName: string;
+  providerName: string;
+  amount: number;
+  frequency: 'monthly' | 'quarterly' | 'half-yearly' | 'annually';
+  nextDueDate: Date;
+  status: 'pending' | 'completed';
+}
+
 interface ComplianceContextType {
   complianceItems: ComplianceItem[];
   loanRepayments: LoanRepayment[];
   vehicleRenewals: VehicleRenewal[];
+  utilityPayments: UtilityPayment[];
   markCompleted: (id: string) => void;
   markPending: (id: string) => void;
   upcomingDeadlines: ComplianceItem[];
@@ -48,12 +58,17 @@ interface ComplianceContextType {
   updateVehicleRenewal: (vehicle: VehicleRenewal) => void;
   removeVehicleRenewal: (id: string) => void;
   markVehicleRenewalComplete: (id: string) => void;
+  addUtilityPayment: (utility: Omit<UtilityPayment, 'id'>) => void;
+  updateUtilityPayment: (utility: UtilityPayment) => void;
+  removeUtilityPayment: (id: string) => void;
+  markUtilityPaymentComplete: (id: string) => void;
 }
 
 const ComplianceContext = createContext<ComplianceContextType>({
   complianceItems: [],
   loanRepayments: [],
   vehicleRenewals: [],
+  utilityPayments: [],
   markCompleted: () => {},
   markPending: () => {},
   upcomingDeadlines: [],
@@ -65,6 +80,10 @@ const ComplianceContext = createContext<ComplianceContextType>({
   updateVehicleRenewal: () => {},
   removeVehicleRenewal: () => {},
   markVehicleRenewalComplete: () => {},
+  addUtilityPayment: () => {},
+  updateUtilityPayment: () => {},
+  removeUtilityPayment: () => {},
+  markUtilityPaymentComplete: () => {},
 });
 
 export const useComplianceContext = () => useContext(ComplianceContext);
@@ -75,6 +94,7 @@ export const ComplianceProvider: React.FC<{ children: ReactNode }> = ({ children
   const [upcomingDeadlines, setUpcomingDeadlines] = useState<ComplianceItem[]>([]);
   const [loanRepayments, setLoanRepayments] = useState<LoanRepayment[]>([]);
   const [vehicleRenewals, setVehicleRenewals] = useState<VehicleRenewal[]>([]);
+  const [utilityPayments, setUtilityPayments] = useState<UtilityPayment[]>([]);
 
   // Load saved data from localStorage
   useEffect(() => {
@@ -99,6 +119,16 @@ export const ComplianceProvider: React.FC<{ children: ReactNode }> = ({ children
         nextRenewalDate: new Date(vehicle.nextRenewalDate)
       }));
       setVehicleRenewals(vehiclesWithDates);
+    }
+    
+    const savedUtilities = localStorage.getItem('utilityPayments');
+    if (savedUtilities) {
+      const parsedUtilities = JSON.parse(savedUtilities);
+      const utilitiesWithDates = parsedUtilities.map((utility: any) => ({
+        ...utility,
+        nextDueDate: new Date(utility.nextDueDate)
+      }));
+      setUtilityPayments(utilitiesWithDates);
     }
   }, []);
 
@@ -287,6 +317,21 @@ export const ComplianceProvider: React.FC<{ children: ReactNode }> = ({ children
         });
       }
     });
+    
+    // Add utility payments to the list
+    utilityPayments.forEach(utility => {
+      if (utility.status === 'pending' && isBefore(today, utility.nextDueDate)) {
+        combinedItems.push({
+          id: `utility-${utility.id}`,
+          category: 'Utility Payment',
+          title: `${utility.utilityName} Payment Due`,
+          description: `Utility payment of NPR ${utility.amount.toLocaleString()} to ${utility.providerName} is due.`,
+          dueDate: utility.nextDueDate,
+          status: 'pending',
+          priority: isBefore(utility.nextDueDate, addDays(today, 7)) ? 'urgent' : 'normal'
+        });
+      }
+    });
 
     // Update upcoming deadlines
     const upcoming = combinedItems
@@ -296,7 +341,7 @@ export const ComplianceProvider: React.FC<{ children: ReactNode }> = ({ children
     
     setUpcomingDeadlines(upcoming);
     
-  }, [businessInfo, complianceItems, loanRepayments, vehicleRenewals]);
+  }, [businessInfo, complianceItems, loanRepayments, vehicleRenewals, utilityPayments]);
 
   const markCompleted = (id: string) => {
     const updatedItems = complianceItems.map(item => 
@@ -445,11 +490,68 @@ export const ComplianceProvider: React.FC<{ children: ReactNode }> = ({ children
     localStorage.setItem('vehicleRenewals', JSON.stringify(updatedVehicles));
   };
 
+  // Utility payment functions
+  const addUtilityPayment = (utility: Omit<UtilityPayment, 'id'>) => {
+    const newUtility: UtilityPayment = {
+      ...utility,
+      id: `utility-${Date.now()}`
+    };
+    
+    const updatedUtilities = [...utilityPayments, newUtility];
+    setUtilityPayments(updatedUtilities);
+    localStorage.setItem('utilityPayments', JSON.stringify(updatedUtilities));
+  };
+
+  const updateUtilityPayment = (utility: UtilityPayment) => {
+    const updatedUtilities = utilityPayments.map(item => 
+      item.id === utility.id ? utility : item
+    );
+    setUtilityPayments(updatedUtilities);
+    localStorage.setItem('utilityPayments', JSON.stringify(updatedUtilities));
+  };
+
+  const removeUtilityPayment = (id: string) => {
+    const updatedUtilities = utilityPayments.filter(utility => utility.id !== id);
+    setUtilityPayments(updatedUtilities);
+    localStorage.setItem('utilityPayments', JSON.stringify(updatedUtilities));
+  };
+
+  const markUtilityPaymentComplete = (id: string) => {
+    const utility = utilityPayments.find(utility => utility.id === id);
+    if (!utility) return;
+
+    // Calculate next due date based on frequency
+    let nextDueDate = new Date(utility.nextDueDate);
+    switch (utility.frequency) {
+      case 'monthly':
+        nextDueDate = addMonths(nextDueDate, 1);
+        break;
+      case 'quarterly':
+        nextDueDate = addMonths(nextDueDate, 3);
+        break;
+      case 'half-yearly':
+        nextDueDate = addMonths(nextDueDate, 6);
+        break;
+      case 'annually':
+        nextDueDate = addYears(nextDueDate, 1);
+        break;
+    }
+
+    const updatedUtility = { ...utility, nextDueDate };
+    const updatedUtilities = utilityPayments.map(item => 
+      item.id === id ? updatedUtility : item
+    );
+    
+    setUtilityPayments(updatedUtilities);
+    localStorage.setItem('utilityPayments', JSON.stringify(updatedUtilities));
+  };
+
   return (
     <ComplianceContext.Provider value={{ 
       complianceItems, 
       loanRepayments,
       vehicleRenewals,
+      utilityPayments,
       markCompleted,
       markPending,
       upcomingDeadlines,
@@ -460,7 +562,11 @@ export const ComplianceProvider: React.FC<{ children: ReactNode }> = ({ children
       addVehicleRenewal,
       updateVehicleRenewal,
       removeVehicleRenewal,
-      markVehicleRenewalComplete
+      markVehicleRenewalComplete,
+      addUtilityPayment,
+      updateUtilityPayment,
+      removeUtilityPayment,
+      markUtilityPaymentComplete
     }}>
       {children}
     </ComplianceContext.Provider>
