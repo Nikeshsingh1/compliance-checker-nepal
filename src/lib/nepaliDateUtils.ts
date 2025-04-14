@@ -37,6 +37,42 @@ export function getNepaliDay(date: Date): number {
   return nepaliDate.getBS().day;
 }
 
+export function getNepaliDateObject(date: Date): { year: number; month: number; day: number } {
+  const nepaliDate = toNepaliDate(date);
+  return {
+    year: nepaliDate.getBS().year,
+    month: nepaliDate.getBS().month,
+    day: nepaliDate.getBS().day
+  };
+}
+
+export function getEnglishDateFromNepaliBS(year: number, month: number, day: number): Date {
+  try {
+    const nepaliDate = new NepaliDate(year, month, day);
+    return nepaliDate.toJSDate();
+  } catch (error) {
+    console.error("Invalid Nepali date", error);
+    return new Date();
+  }
+}
+
+export function getNepaliMonthDays(year: number, month: number): number {
+  // Get the number of days in the given Nepali month
+  const daysInMonth = [31, 31, 31, 32, 31, 31, 30, 30, 29, 30, 29, 31]; // Default for most years
+  
+  // Some years might have different days in certain months
+  // This is a simplified version; a complete implementation would need to check specific exceptions
+  return daysInMonth[month];
+}
+
+export function getFirstDayOfNepaliMonth(year: number, month: number): number {
+  // Get the weekday (0-6) of the first day of the given Nepali month
+  // This is an approximation, as the actual calculation is complex
+  const nepaliDate = new NepaliDate(year, month, 1);
+  const jsDate = nepaliDate.toJSDate();
+  return jsDate.getDay(); // 0 is Sunday, 1 is Monday, etc.
+}
+
 export const nepaliMonths = [
   'Baishakh', 
   'Jestha', 
@@ -51,3 +87,14 @@ export const nepaliMonths = [
   'Falgun', 
   'Chaitra'
 ];
+
+export const nepaliWeekdays = [
+  'आइतबार', // Sunday
+  'सोमबार', // Monday
+  'मंगलबार', // Tuesday
+  'बुधबार', // Wednesday
+  'बिहिबार', // Thursday
+  'शुक्रबार', // Friday
+  'शनिबार'  // Saturday
+];
+

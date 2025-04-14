@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
+import { NepaliCalendar } from '@/components/ui/nepali-calendar';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatNepaliDateShort } from '@/lib/nepaliDateUtils';
 
 interface Step2Props {
   onNext: () => void;
@@ -56,11 +56,15 @@ const Step2RegistrationDetails: React.FC<Step2Props> = ({ onNext, onBack }) => {
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {businessInfo.registrationDate ? format(businessInfo.registrationDate, "PPP") : <span>Pick a date</span>}
+                {businessInfo.registrationDate ? (
+                  formatNepaliDateShort(businessInfo.registrationDate)
+                ) : (
+                  <span>Pick a date</span>
+                )}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
+              <NepaliCalendar
                 mode="single"
                 selected={businessInfo.registrationDate || undefined}
                 onSelect={(date) => {
@@ -70,7 +74,7 @@ const Step2RegistrationDetails: React.FC<Step2Props> = ({ onNext, onBack }) => {
                   }
                 }}
                 initialFocus
-                className={cn("p-3 pointer-events-auto")}
+                className="p-3 pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
