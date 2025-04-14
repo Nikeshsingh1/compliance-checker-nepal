@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker, DayPickerRootProps } from "react-day-picker";
+import { DayPicker, DayPickerProps } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -116,7 +116,7 @@ function NepaliCalendar({
           // Type cast props to access navigate function properties
           const iconProps = props as unknown as { 
             month: Date;
-            onClick: (e: React.MouseEvent<HTMLButtonElement>) => void 
+            onClick: (newMonth: Date) => void 
           };
           
           return (
@@ -125,6 +125,7 @@ function NepaliCalendar({
               onClick={(e) => {
                 e.stopPropagation();
                 if (iconProps.onClick && iconProps.month) {
+                  // Create a wrapper function that calls handlePrevMonth with the correct types
                   handlePrevMonth(iconProps.month, iconProps.onClick);
                 }
               }}
@@ -135,7 +136,7 @@ function NepaliCalendar({
           // Type cast props to access navigate function properties
           const iconProps = props as unknown as { 
             month: Date;
-            onClick: (e: React.MouseEvent<HTMLButtonElement>) => void 
+            onClick: (newMonth: Date) => void 
           };
           
           return (
@@ -144,6 +145,7 @@ function NepaliCalendar({
               onClick={(e) => {
                 e.stopPropagation();
                 if (iconProps.onClick && iconProps.month) {
+                  // Create a wrapper function that calls handleNextMonth with the correct types
                   handleNextMonth(iconProps.month, iconProps.onClick);
                 }
               }}
